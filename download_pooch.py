@@ -8,6 +8,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np 
 
+dir = f"./data/"
+if not os.path.exists(dir):
+    os.makedirs(dir)
+
 file_path = pooch.retrieve(
     # URL to one of Pooch's test files
     fname="whole_taxonomy_MTG_AD.h5ad",
