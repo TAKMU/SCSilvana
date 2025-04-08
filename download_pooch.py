@@ -97,37 +97,19 @@ def get_batch_metadata(i, batch_size, path):
     metadata_batch = batch.obs
     return metadata_batch
 
-Parallel(n_jobs=4)(
-    delayed(get_batch_X)(i, batch_size, data_raw_path)
-    for i in range(0, adata.n_obs, batch_size)
-)
-chunks = sorted(glob.glob(f"./data/chunk_*.mtx"))
-X_final = sparse.vstack([io.mmread(chunk) for chunk in chunks])
-io.mmwrite("./data/matriz_procesada_completa.mtx", X_final)
+def unique_id(i, batch_size, path):
+    adata = sc.read_h5ad(path, backed="r", as_sparse_fmt = sparse._csr.csr_matrix)
+    batch = adata[i:i + batch_size, :].to_memory()
+    donor_ids_batch = batch.obs["donor_id"].str.lower().unique().tolist()
+    return donor_ids_batch
 
-batch_size = 50000
-results = Parallel(n_jobs=4)(
-    delayed(get_batch_cell_id)(i, batch_size, data_raw_path)
-    for i in range(0, adata.n_obs, batch_size)
-)
-cell_ids = pd.concat(results)
-
-results = Parallel(n_jobs=4)(
-    delayed(get_batch_gene_id)(i, batch_size, data_raw_path)
-    for i in range(0, adata.n_obs, batch_size)
-)
-gene_ids = pd.concat(results)
-
-results = Parallel(n_jobs=4)(
-    delayed(get_batch_metadata)(i, batch_size, data_raw_path)
-    for i in range(0, adata.n_obs, batch_size)
-)
-metadata_cells = pd.concat(results)
+def filter_id(donor, i, path):
+    adata = sc.read_h5ad(path, backed="r", as_sparse_fmt = sparse._csr.csr_matrix)
+    batch = adata[adata.obs["donor_id"] == donor, :].to_memory()
+    io.mmwrite(f"./data/donor_{i}.mtx", batch.X)
 
 
-cell_ids.to_csv("./data/cell_ids.csv", index=False)
-gene_ids.to_csv("./data/gene_ids.csv", index=False)
-metadata_cells.to_csv("./data/metadata_cells.csv")
+
 
 
 
